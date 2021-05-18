@@ -2,15 +2,19 @@ const express = require('express');
 const home = require('./router/home');
 const owner = require('./router/owner');
 const signin = require('./router/ownerLogin');
-
+const restaurant = require('./router/restaurant');
+const cors = require('cors');
 
 
 const app = express();
+
+app.use(cors);
 
 // Route handler middleware
 app.use('/home',home);
 app.use('/api/register',owner);
 app.use('/login',signin);
+app.use('/restaurant',restaurant);
 
 
 // get port number from environment variable
