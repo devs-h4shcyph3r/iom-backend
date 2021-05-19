@@ -18,18 +18,30 @@ mongoose.connect(dburi, { useNewUrlParser: true,useUnifiedTopology: true, useFin
 // restaurant details schema
 const restaurantDetailsSchema = new mongoose.Schema({
     
-    restaurantData: [
-        {
-            name: {
-                required: true,
-                type: String
-            },
-            location: {
-                required:true,
-                type: String
-            }
-        }
-    ],    
+    // restaurantData: [
+    //     {
+    //         name: {
+    //             required: true,
+    //             type: String
+    //         },
+    //         location: {
+    //             required:true,
+    //             type: String
+    //         }
+    //     }
+    // ],   
+    name:{
+        required: true,
+        type: String
+    },
+    location:{
+        required: true,
+        type: String
+    },
+    manager:{
+        required: true,
+        type: String
+    }
 });
 
 
@@ -40,8 +52,16 @@ const restaurantOwnerSchema = new mongoose.Schema({
         type:String,
         required: true,
     },
-
-    restaurantDetails: restaurantDetailsSchema
+    
+        restaurantDetails: 
+        [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'RestaurantDetails'
+            }
+        ]
+        
+    
 });
 
 
@@ -55,116 +75,109 @@ const restaurantDetailModel = new mongoose.model('RestaurantDetails',restaurantD
 const restaurantOwnerModel = new mongoose.model('RestaurantOwner',restaurantOwnerSchema);
 
 
-// add a restaurant
-async function addRestaurant(data){
 
-    const restaurant = new restaurantDetailModel({
-            restaurantData: [
-                {
-                    $push : {
-                        name: "Ande ka finda",
-                        location: "bangalore"
-                    },
-                    $upsert: true        
-                }
-            ]
-        });
+// ADD a restaurant
+async function addRestaurant(routeData){
 
-    await restaurant.save();
+    // check whether the owner has already registered a restaurant or not
+    let isPresent = await restaurantOwnerModel.find({ownerEmail:routeData.email})
 
-    console.log(restaurant);
+    // if Yes, update that document
+    if(isPresent.length>0){
 
-    const restaurantOwner = new restaurantOwnerModel({
-        ownerEmail: data.email,
-        restaurantDetails : restaurant
-    });
-    await restaurantOwner.save();
-
-    return(restaurantOwner)
-
-
-
-        // .then(async function(){
-
-        //     const restaurantOwner = new restaurantOwnerModel({
-        //         ownerEmail: data.email,
-        //         restaurant
+        // update the existing document
+        return "Owner document already exists.\nTry updating instead."
         
-        //     });
-        //     const data = await restaurantOwner.save()
-        //     console.log(data);
-        // })
-        // // .then((data) => { return (_.pick(data,[
-        // //     'name','location','ownerEmail']
-        // //     ))}
-        // // )
-        // .catch((err) => console.log(err));
+    }
 
-    // console.log(restaurantName,restaurantLocation,email);
+    // if No, add another document
+    else{
 
+        const restaurant = new restaurantDetailModel({
+            
+            name: routeData.name,
+            location: routeData.location,
+            manager: routeData.manager
+
+        });
     
+        await restaurant.save()    
+
+        if(routeData.email){
+        const restaurantOwner = new restaurantOwnerModel({
+            ownerEmail: routeData.email,
+            restaurantDetails: restaurant
+        });
+        await restaurantOwner.save()
+        
+        return(restaurantOwner);
+        };
+
+    }
+   
 
 };
 
-// // get all restaurants
-// async function getRestaurant(email){
-//     const restaurantList = await restaurantModel
-//         .find({ownerEmail:email})
-//         .select({name:1,location:1})
+// GET all restaurants
+async function getRestaurant(email){
+
+    // get owner profile
+    const ownerProfile = await restaurantOwnerModel.find({ownerEmail:email})
+
+    // get restaurant id array
+    const restaurantID = ownerProfile[0].restaurantDetails;
+
+    const restaurantList = await restaurantDetailModel
+        .find({_id:restaurantID[0]})
     
-//     return restaurantList;
+    return restaurantList;
     
-// };
+};
 
 
-// // update a restaurant
-async function updateRestaurant(name,location,oldEmail,newEmail) {
+// UPDATE a restaurant
+async function updateRestaurant(routeData) {
 
-    if(newEmail === ""){
-        newEmail = oldEmail
-    }
-    const restaurant_details = {name:name,location:location};
+    // check for owner email updation
+    // if(routeData.newEmail === ""){
+    //     newEmail = oldEmail
+    // }
 
-    query = {ownerEmail:oldEmail}
+    // const restaurant_details = ;
 
-    const restaurant = await restaurantModel
+    query = {name:routeData.name,location:routeData.location,manager:routeData.manager}
+
+    const restaurant = await restaurantDetailModel
         .findOneAndUpdate(
 
             query,
-
-            {$push : {
-
-                restaurantData :[restaurant_details]
-            }
-        },
-        {
-            upsert: true
-        },
-        function(err){
-            if(err){
-                console.log(err);
-            }else{
-                console.log("Added succesfully")
-            }
-        }
-        );
-        console.log(restaurant);
-    
-        return(_.pick(await restaurant,['name','location','ownerEmail']));
+            {
+                name: routeData.newName,
+                location: routeData.newLocation,
+                manager: routeData.newManager
+            },
+            {new:true}
+    )
+    await restaurant.save()
+    return(restaurant);
 };
 
 
-// // delete a restaurant
-// async function deleteRestaurant(name,location,email){
-//     const restaurant = await restaurantModel
-//         .findAndModify({
-//             query : {name: name,location:location,ownerEmail:email},
+// DELETE a restaurant
+async function deleteRestaurant(email){
 
-//             remove: true
-//         });
+    // get owner profile
+    const ownerProfile = await restaurantOwnerModel.find({ownerEmail:email})
+
+    // get restaurant id array
+    const restaurantID = ownerProfile[0].restaurantDetails;
+    console.log(restaurantID[0]);
+
+    const restaurant = await restaurantDetailModel
+        .deleteOne({ _id:restaurantID[0] });
     
-//     return "Restaurant data deleted"
-// };
+    return "Restaurant data deleted"
+};
 
 
-module.exports = {addRestaurant,restaurantDetailModel,updateRestaurant}
+module.exports = {getRestaurant,addRestaurant,updateRestaurant,deleteRestaurant}

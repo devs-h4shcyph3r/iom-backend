@@ -4,7 +4,6 @@ const _ = require('lodash');
 const Joi = require('joi');
 const authorize = require('../middleware/auth');
 const { addOwner,getOwner } = require('../models/owner');
-const { response } = require('express');
 
 const ownerRoute = express.Router();
 

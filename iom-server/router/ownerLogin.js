@@ -15,7 +15,8 @@ loginRoute.post('/',jsonParser,(req,res) => {
     const validCreds = ownerAuth(req.body.email,req.body.password)
         .then((data) => res.header('x-auth-token',data.token).send("Log-in successful."))
         .catch((err) => res.send(err));
-    console.log(req.body)
+
+    // console.log(req.body)
 
 });
 

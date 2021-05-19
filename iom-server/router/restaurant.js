@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const authorize = require('../middleware/auth');
+const _ = require('lodash');
 
 
 
@@ -33,7 +34,7 @@ restaurantRoute.post('/', authorize, jsonParser ,async (req,res) => {
     // get owner email address
     const ownerEmail = payload.email;
 
-    let data = {email:ownerEmail, name:req.body.name, location:req.body.location};
+    let data = {email:ownerEmail, name:req.body.name, location:req.body.location, manager:req.body.manager};
 
     const restaurant = addRestaurant(data)
 
@@ -54,9 +55,11 @@ restaurantRoute.put('/',authorize,jsonParser,(req,res) => {
 
     // get owner email address
     const ownerEmail = payload.email;
-
-    const restaurant = updateRestaurant(req.body.name,req.body.location,ownerEmail,req.body.email)
-        .then((data) => res.send(data))
+    const routeData = { name:req.body.name,location:req.body.location,manager:req.body.manager,
+                        newName:req.body.newName,newLocation:req.body.newLocation,newManager:req.body.newManager
+                    }
+    const restaurant = updateRestaurant(routeData)
+        .then((data) => res.send(_.pick(data,['name','location','manager'])))
         .catch((err) => console.log(err));
 });
 
@@ -73,7 +76,7 @@ restaurantRoute.delete('/',authorize,jsonParser,(req,res) => {
     // get owner email address
     const ownerEmail = payload.email;
 
-    const restaurant = deleteRestaurant(req.body.name,req.body.location,ownerEmail)
+    const restaurant = deleteRestaurant(ownerEmail)
         .then((data) => res.send(data))
         .catch((err) => console.log(err));
     

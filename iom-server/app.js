@@ -8,17 +8,18 @@ const cors = require('cors');
 
 const app = express();
 
-app.use(cors);
 
 // Route handler middleware
 app.use('/home',home);
 app.use('/api/register',owner);
 app.use('/login',signin);
 app.use('/restaurant',restaurant);
+app.use(cors);
+
 
 
 // get port number from environment variable
-const PORT = process.env.PORT || 1111
+const PORT = process.env.PORT || 1234
 
 // start the server
 app.listen(PORT,() => {
